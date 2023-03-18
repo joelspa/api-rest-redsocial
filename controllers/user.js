@@ -10,7 +10,8 @@ const jwt = require("../services/jwt");
 // Acctiones de prueba
 const pruebaUser = (req, res) => {
     res.status(200).send({
-        message: 'Hola mundo desde: contollers/user.js'
+        message: 'Hola mundo desde: contollers/user.js',
+        user: req.user
     });
 }
 
@@ -108,9 +109,37 @@ const login = (req, res) => {
 
 }
 
+const profile = (req, res) => {
+    // Recibir el parámetro del id de usuario por la url
+    const id = req.params.id;
+
+    // Consulta para sacar los datos del usuario
+    User.findById(id)
+        .select({ password: 0, role: 0 }) // No mostrar estos campos
+        .then(userProfile => { 
+            if (!userProfile) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "El usuario no existe"
+                })
+            }
+
+            // Devolver resultado
+            // Devolver informacion de follows
+            return res.status(200).json({
+                status: "success",
+                message: "Usuario encontrado",
+                user: userProfile
+            })
+
+        });
+
+}
+
 // Exportar acciones
 module.exports = {
     pruebaUser,
     register,
-    login
+    login,
+    profile
 }

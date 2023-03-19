@@ -1,10 +1,11 @@
-// Importar el modelo de usuario
+// Importar dependencias y modulos
 const bcrypt = require("bcrypt");
+const mongoosePagination = require("mongoose-pagination");
 
-// Importar el modelo de usuario
+// Importar modelos
 const User = require("../models/user");
 
-// Importar el servicio de jwt
+// Importar el servicios
 const jwt = require("../services/jwt");
 
 // Acctiones de prueba
@@ -116,7 +117,7 @@ const profile = (req, res) => {
     // Consulta para sacar los datos del usuario
     User.findById(id)
         .select({ password: 0, role: 0 }) // No mostrar estos campos
-        .then(userProfile => { 
+        .then(userProfile => {
             if (!userProfile) {
                 return res.status(400).json({
                     status: "error",
@@ -131,15 +132,88 @@ const profile = (req, res) => {
                 message: "Usuario encontrado",
                 user: userProfile
             })
+        });
+}
 
+const list = (req, res) => {
+    // Controlar en que pagina estamos
+    let page = 1;
+    if (req.params.page) {
+        page = req.params.page;
+    }
+    page = parseInt(page);
+
+    // Consulta con mongoose paginate 
+    let itemsPerPage = 5; // Cantidad de usuarios por pagina
+
+    // ordenar de manera ascendente y paginar usando mongoose 7.0
+    User.countDocuments({})
+        .then(count => {
+            User.find({})
+                .sort('_id')
+                .paginate(page, itemsPerPage)
+                .then(users => {
+                    if (!users) {
+                        return res.status(404).json({
+                            status: "error",
+                            message: "No hay usuarios disponibles",
+                        });
+                    }
+
+                    return res.status(200).json({
+                        status: "success",
+                        users,
+                        page,
+                        itemsPerPage,
+                        total: count,
+                        pages: Math.ceil(count / itemsPerPage)
+                    });
+                })
+                .catch(err => {
+                    return res.status(500).json({
+                        status: "error",
+                        message: "No se pudieron recuperar los usuarios",
+                        err
+                    });
+                });
+        })
+        .catch(err => {
+            return res.status(500).json({
+                status: "error",
+                message: "No se pudo contar el número de usuarios",
+                err
+            });
         });
 
+
+    //    User.find().sort('_id').paginate(page, itemsPerPage, (err, users, total) => {
+    //
+    //        if (err || !users) {
+    //            return res.status(500).send ({
+    //                status: "error",
+    //                message: "No hay usuarios disponibles",
+    //                err
+    //            })
+    //        }
+    //
+    //        // Devolver respuesta (info follow)
+    //        return res.status(200).send({
+    //            status: "success",
+    //            users,
+    //            page,
+    //            itemsPerPAge,
+    //            total,
+    //            pages: Math.ceil(total / itemsPerPage)
+    //        })
+    //    });
 }
+
 
 // Exportar acciones
 module.exports = {
     pruebaUser,
     register,
     login,
-    profile
+    profile,
+    list
 }

@@ -208,6 +208,62 @@ const list = (req, res) => {
     //    });
 }
 
+const update = (req, res) => {
+    // Recoger datos del usuario a actualizar
+    const userIdentity = req.user;
+    let userToUpdate = req.body;
+
+
+    // Eliminar propiedades innecesarias
+    delete userToUpdate.iat;
+    delete userToUpdate.exp;
+    delete userToUpdate.role;
+    delete userToUpdate.image;
+
+    // Comnprpbar si el usuario ya existe
+    User.find({
+        $or: [
+            { email: userToUpdate.email.toLowerCase() },
+            { nick: userToUpdate.nick.toLowerCase() }
+        ]
+    }).then(async users => {
+        let userIsset = false;
+        users.forEach(user => {
+            if (user && user._id != userIdentity.id) {
+                userIsset = true;
+            }
+        });
+
+        // Cifrar la contraseña
+        if (userToUpdate.password) {
+            let pwd = await bcrypt.hash(userToUpdate.password, 10);
+            userToUpdate.password = pwd;
+        }
+
+        // Buscar y actualizar
+        try { // Manera de hacerlo con async await
+            let userUpdated = await User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true });
+            if (!userUpdated) {
+                return res.status(404).send({
+                    status: "error",
+                    message: "Error al actualizar el usuario"
+                })
+            }
+            // Devolver respuesta
+            return res.status(200).send({
+                status: "success",
+                message: "Usuario actualizado correctamente",
+                user: userUpdated
+            })
+        } catch (error) {
+            return res.status(500).send({
+                status: "error",
+                message: "Error al actualizar el usuario"
+            })
+        }
+    })
+}
+
 
 // Exportar acciones
 module.exports = {
@@ -215,5 +271,6 @@ module.exports = {
     register,
     login,
     profile,
-    list
+    list,
+    update
 }

@@ -264,6 +264,16 @@ const update = (req, res) => {
     })
 }
 
+const upload = (req, res) => {
+    return res.status(200).send({
+        status: "success",
+        message: "Imagen subida correctamente",
+        user: req.user,
+        file: req.file,
+        files: req.files
+    })
+}
+
 
 // Exportar acciones
 module.exports = {
@@ -272,5 +282,6 @@ module.exports = {
     login,
     profile,
     list,
-    update
+    update,
+    upload
 }

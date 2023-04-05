@@ -1,6 +1,7 @@
 // Importar dependencias y modulos
 const bcrypt = require("bcrypt");
 const mongoosePagination = require("mongoose-pagination");
+const fs = require("fs");
 
 // Importar modelos
 const User = require("../models/user");
@@ -265,13 +266,62 @@ const update = (req, res) => {
 }
 
 const upload = (req, res) => {
-    return res.status(200).send({
-        status: "success",
-        message: "Imagen subida correctamente",
-        user: req.user,
-        file: req.file,
-        files: req.files
+
+    // Recoger el fichero de la petición y comprobar si existe
+    if (!req.file) {
+        return res.status(404).send({
+            status: "error",
+            message: "No se ha subido ningún archivo"
+        });
+    }
+
+    // Conseguir el nombre del fichero
+    let image = req.file.originalname;
+
+    // Conseguir la extensión del fichero
+    const imageSplit = image.split("\.");
+    const extension = imageSplit[1];
+
+
+    // Comprobar la extensión, solo imagenes
+    if (extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif") {
+
+        // Borrar el fichero subido
+        const filePath = req.file.path;
+        const fileDeleted = fs.unlinkSync(filePath); // Comprobar si existe el fichero
+
+        // Devolver respuesta
+        return res.status(400).send({
+            status: "error",
+            message: "La extensión del archivo no es válida"
+        });
+    }
+
+    // Si es valido, guardar el fichero en el servidor
+    User.findOneAndUpdate(req.user.id, { image: req.file.filename }, { new: true })
+    .then(userUpdated => {
+        if (!userUpdated) {
+            return res.status(500).send({
+                status: "error",
+                message: "Error en la subida de imagen de avatar"
+            });
+        }
+        // Devolver respuesta   
+        return res.status(200).send({
+            status: "success",
+            user: userUpdated,
+            file: req.file
+        });
     })
+    .catch(err => {
+        return res.status(500).send({
+            status: "error",
+            message: "Error en la subida de imagen de avatar",
+            err
+        });
+    });
+    
+
 }
 
 

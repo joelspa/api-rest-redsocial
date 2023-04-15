@@ -21,7 +21,6 @@ const pruebaUser = (req, res) => {
 const register = (req, res) => {
     // Recoger parametros de la peticion
     let params = req.body;
-
     // Comprobar que llegan todos los datos + validacion
     if (!params.name || !params.email || !params.password || !params.nick) {
         return res.status(400).json({
@@ -29,7 +28,6 @@ const register = (req, res) => {
             message: "Faltan datos por enviar"
         })
     }
-
     //Controlar usuarios duplicados
     User.find({ $or: [{ email: params.email.toLowerCase() }, { nick: params.nick.toLowerCase() }] })
         .then(async users => {
@@ -42,10 +40,8 @@ const register = (req, res) => {
             // Cifrar la contraseña
             let pwd = await bcrypt.hash(params.password, 10);
             params.password = pwd;
-
             // Crear objeto de usuario
             let user_to_save = new User(params);
-
             // Guardar usuario en la base de datos
             user_to_save.save().then((userStored) => {
                 if (!userStored) {
@@ -67,7 +63,6 @@ const register = (req, res) => {
 const login = (req, res) => {
     // Recoger parametros de la peticion
     let params = req.body;
-
     if (!params.email || !params.password) {
         return res.status(400).json({
             status: "error",
@@ -85,17 +80,14 @@ const login = (req, res) => {
             }
             // Comprobar la contraseña
             let pwd = await bcrypt.compare(params.password, user.password);
-
             if (!pwd) {
                 return res.status(400).json({
                     status: "error",
                     message: "La contraseña no es correcta"
                 })
             }
-
             // Conseguir token
             const token = jwt.createToken(user);
-
             // Devolver datos de usuario
             return res.status(200).json({
                 status: "success",
@@ -114,7 +106,6 @@ const login = (req, res) => {
 const profile = (req, res) => {
     // Recibir el parámetro del id de usuario por la url
     const id = req.params.id;
-
     // Consulta para sacar los datos del usuario
     User.findById(id)
         .select({ password: 0, role: 0 }) // No mostrar estos campos
@@ -125,7 +116,6 @@ const profile = (req, res) => {
                     message: "El usuario no existe"
                 })
             }
-
             // Devolver resultado
             // Devolver informacion de follows
             return res.status(200).json({
@@ -143,10 +133,8 @@ const list = (req, res) => {
         page = req.params.page;
     }
     page = parseInt(page);
-
     // Consulta con mongoose paginate 
     let itemsPerPage = 5; // Cantidad de usuarios por pagina
-
     // ordenar de manera ascendente y paginar usando mongoose 7.0
     User.countDocuments({})
         .then(count => {
@@ -160,7 +148,6 @@ const list = (req, res) => {
                             message: "No hay usuarios disponibles",
                         });
                     }
-
                     return res.status(200).json({
                         status: "success",
                         users,
@@ -185,8 +172,6 @@ const list = (req, res) => {
                 err
             });
         });
-
-
     //    User.find().sort('_id').paginate(page, itemsPerPage, (err, users, total) => {
     //
     //        if (err || !users) {
@@ -213,14 +198,11 @@ const update = (req, res) => {
     // Recoger datos del usuario a actualizar
     const userIdentity = req.user;
     let userToUpdate = req.body;
-
-
     // Eliminar propiedades innecesarias
     delete userToUpdate.iat;
     delete userToUpdate.exp;
     delete userToUpdate.role;
     delete userToUpdate.image;
-
     // Comnprpbar si el usuario ya existe
     User.find({
         $or: [
@@ -234,13 +216,11 @@ const update = (req, res) => {
                 userIsset = true;
             }
         });
-
         // Cifrar la contraseña
         if (userToUpdate.password) {
             let pwd = await bcrypt.hash(userToUpdate.password, 10);
             userToUpdate.password = pwd;
         }
-
         // Buscar y actualizar
         try { // Manera de hacerlo con async await
             let userUpdated = await User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true });
@@ -266,7 +246,6 @@ const update = (req, res) => {
 }
 
 const upload = (req, res) => {
-
     // Recoger el fichero de la petición y comprobar si existe
     if (!req.file) {
         return res.status(404).send({
@@ -274,53 +253,45 @@ const upload = (req, res) => {
             message: "No se ha subido ningún archivo"
         });
     }
-
     // Conseguir el nombre del fichero
     let image = req.file.originalname;
-
     // Conseguir la extensión del fichero
     const imageSplit = image.split("\.");
     const extension = imageSplit[1];
-
-
     // Comprobar la extensión, solo imagenes
     if (extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif") {
-
         // Borrar el fichero subido
         const filePath = req.file.path;
         const fileDeleted = fs.unlinkSync(filePath); // Comprobar si existe el fichero
-
         // Devolver respuesta
         return res.status(400).send({
             status: "error",
             message: "La extensión del archivo no es válida"
         });
     }
-
     // Si es valido, guardar el fichero en el servidor
     User.findOneAndUpdate(req.user.id, { image: req.file.filename }, { new: true })
-    .then(userUpdated => {
-        if (!userUpdated) {
+        .then(userUpdated => {
+            if (!userUpdated) {
+                return res.status(500).send({
+                    status: "error",
+                    message: "Error en la subida de imagen de avatar"
+                });
+            }
+            // Devolver respuesta   
+            return res.status(200).send({
+                status: "success",
+                user: userUpdated,
+                file: req.file
+            });
+        })
+        .catch(err => {
             return res.status(500).send({
                 status: "error",
-                message: "Error en la subida de imagen de avatar"
+                message: "Error en la subida de imagen de avatar",
+                err
             });
-        }
-        // Devolver respuesta   
-        return res.status(200).send({
-            status: "success",
-            user: userUpdated,
-            file: req.file
         });
-    })
-    .catch(err => {
-        return res.status(500).send({
-            status: "error",
-            message: "Error en la subida de imagen de avatar",
-            err
-        });
-    });
-    
 
 }
 

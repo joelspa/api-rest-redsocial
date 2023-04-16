@@ -224,7 +224,7 @@ const update = (req, res) => {
         }
         // Buscar y actualizar
         try { // Manera de hacerlo con async await
-            let userUpdated = await User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true });
+            let userUpdated = await User.findByIdAndUpdate({_id: userIdentity.id}, userToUpdate, { new: true });
             if (!userUpdated) {
                 return res.status(404).send({
                     status: "error",
@@ -271,7 +271,7 @@ const upload = (req, res) => {
         });
     }
     // Si es valido, guardar el fichero en el servidor
-    User.findOneAndUpdate(req.user.id, { image: req.file.filename }, { new: true })
+    User.findOneAndUpdate({_id:req.user.id}, { image: req.file.filename }, { new: true })
         .then(userUpdated => {
             if (!userUpdated) {
                 return res.status(500).send({

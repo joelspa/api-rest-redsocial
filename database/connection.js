@@ -6,7 +6,7 @@ const connection = async () => {
     try {
         await mongoose.connect("mongodb://127.0.0.1:27017/mi_redsocial");
 
-        console.log("MongoDB conectado a db: mi_redsocial");
+        console.log("MongoDB conectado a db: " + mongoose.connection.name);
 
     } catch (error) {
         console.log(error);

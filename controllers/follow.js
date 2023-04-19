@@ -2,6 +2,9 @@
 const Follow = require('../models/follow');
 const User = require('../models/user');
 
+// importar servicio
+const followservice = require('../services/followService');
+
 // importar depencias
 const mongoosePaginate = require('mongoose-pagination');
 
@@ -122,7 +125,7 @@ const following = (req, res) => {
             Follow.find({ user: userId })
                 .populate("user followed", "-password -__v -role") // usar - delante de los campos que no quiero que me devuelva
                 .paginate(page, itemsPerPage)
-                .then(follows => {
+                .then(async follows => {
                     {
                         if (!follows) {
                             return res.status(404).send({
@@ -130,12 +133,17 @@ const following = (req, res) => {
                                 message: 'No se ha encontrado ningun follow'
                             });
                         }
+
+                        let followUserIds = await followservice.followUserIds(req.user.id);
+
                         return res.status(200).send({
                             status: 'success',
                             follows,
                             page,
                             total: count,
-                            pages: Math.ceil(count / itemsPerPage)
+                            pages: Math.ceil(count / itemsPerPage),
+                            user_following: followUserIds.following,
+                            user_follow_me: followUserIds.followers
                         });
                     }
                 }

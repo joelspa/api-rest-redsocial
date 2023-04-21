@@ -9,6 +9,7 @@ const User = require("../models/user");
 
 // Importar el servicios
 const jwt = require("../services/jwt");
+const followService = require("../services/followService");
 
 // Acctiones de prueba
 const pruebaUser = (req, res) => {
@@ -110,19 +111,24 @@ const profile = (req, res) => {
     // Consulta para sacar los datos del usuario
     User.findById(id)
         .select({ password: 0, role: 0 }) // No mostrar estos campos
-        .then(userProfile => {
+        .then(async userProfile => {
             if (!userProfile) {
                 return res.status(400).json({
                     status: "error",
                     message: "El usuario no existe"
                 })
             }
+
+            // Info de follows
+            const followInfo = await followService.followThisUser(req.user.id, id);
+
             // Devolver resultado
-            // Devolver informacion de follows
             return res.status(200).json({
                 status: "success",
                 message: "Usuario encontrado",
-                user: userProfile
+                user: userProfile,
+                following: followInfo.following,
+                follower: followInfo.follower
             })
         });
 }
@@ -142,20 +148,26 @@ const list = (req, res) => {
             User.find({})
                 .sort('_id')
                 .paginate(page, itemsPerPage)
-                .then(users => {
+                .then(async users => {
                     if (!users) {
                         return res.status(404).json({
                             status: "error",
                             message: "No hay usuarios disponibles",
                         });
                     }
+
+                    // Sacar un array de los usuarios que estoy siguiendo
+                    let followUserIds = await followService.followUserIds(req.user.id);
+
                     return res.status(200).json({
                         status: "success",
                         users,
                         page,
                         itemsPerPage,
                         total: count,
-                        pages: Math.ceil(count / itemsPerPage)
+                        pages: Math.ceil(count / itemsPerPage),
+                        user_following: followUserIds.following,
+                        user_follow_me: followUserIds.followers
                     });
                 })
                 .catch(err => {
@@ -224,7 +236,7 @@ const update = (req, res) => {
         }
         // Buscar y actualizar
         try { // Manera de hacerlo con async await
-            let userUpdated = await User.findByIdAndUpdate({_id: userIdentity.id}, userToUpdate, { new: true });
+            let userUpdated = await User.findByIdAndUpdate({ _id: userIdentity.id }, userToUpdate, { new: true });
             if (!userUpdated) {
                 return res.status(404).send({
                     status: "error",
@@ -271,7 +283,7 @@ const upload = (req, res) => {
         });
     }
     // Si es valido, guardar el fichero en el servidor
-    User.findOneAndUpdate({_id:req.user.id}, { image: req.file.filename }, { new: true })
+    User.findOneAndUpdate({ _id: req.user.id }, { image: req.file.filename }, { new: true })
         .then(userUpdated => {
             if (!userUpdated) {
                 return res.status(500).send({

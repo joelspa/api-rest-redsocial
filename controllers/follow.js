@@ -167,10 +167,64 @@ const following = (req, res) => {
 
 // Acccion listado de usuarios que siguen a cualquier otro usuario (seguidores)
 const followers = (req, res) => {
-    return res.status(200).send({
-        status: 'success',
-        message: 'Metodo de followers'
-    });
+
+    // Recoger el id del usuario logueado
+    let userId = req.user.id;
+
+    // Comprobar si se esta enviando el id por la url
+    if (req.params.id) userId = req.params.id;
+
+    // Comprobar si me llega la pagina, si no me llega la pagina por defecto es 1
+    let page = 1;
+
+    if (req.params.page) page = req.params.page;
+
+    // Usuarios por pagina quiero mostrar
+    const itemsPerPage = 5;
+
+    Follow.countDocuments({ followed: userId })
+        .then(count => {
+            Follow.find({ user: userId })
+                .populate("user", "-password -__v -role") // usar - delante de los campos que no quiero que me devuelva
+                .paginate(page, itemsPerPage)
+                .then(async follows => {
+                    {
+                        if (!follows) {
+                            return res.status(404).send({
+                                status: 'error',
+                                message: 'No se ha encontrado ningun follow'
+                            });
+                        }
+
+                        // Sacar un array de los usuarios que estoy siguiendo
+                        let followUserIds = await followservice.followUserIds(req.user.id);
+
+                        return res.status(200).send({
+                            status: 'success',
+                            message: 'Listado de usuarios que me siguen',
+                            follows,
+                            page,
+                            total: count,
+                            user_following: followUserIds.following,
+                            user_follow_me: followUserIds.followers
+                        });
+                    }
+                }
+                ).catch(err => {
+                    return res.status(500).send({
+                        status: 'error',
+                        message: 'Error al devolver el follow',
+                        error: err
+                    });
+                });
+        }
+        ).catch(err => {
+            return res.status(500).send({
+                status: 'error',
+                message: 'Error al devolver el follow',
+                error: err
+            });
+        });
 }
 
 // Exportar acciones

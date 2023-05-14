@@ -138,7 +138,7 @@ const user = (req, res) => {
                     message: "No existe la publicación"
                 });
             }
-            
+
             if (publications.length == 0) {
                 return res.status(404).send({
                     status: "error",
@@ -173,6 +173,59 @@ const user = (req, res) => {
 }
 
 // Subir ficheros
+const upload = (req, res) => {
+    // Sacar publicationId de la url
+    const publicationId = req.params.id;
+
+    // Recoger el fichero de la petición y comprobar si existe
+    if (!req.file) {
+        return res.status(404).send({
+            status: "error",
+            message: "No se ha subido ningún archivo"
+        });
+    }
+    // Conseguir el nombre del fichero
+    let image = req.file.originalname;
+
+    // Conseguir la extensión del fichero
+    const imageSplit = image.split("\.");
+    const extension = imageSplit[1];
+
+    // Comprobar la extensión, solo imagenes
+    if (extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif") {
+        // Borrar el fichero subido
+        const filePath = req.file.path;
+        const fileDeleted = fs.unlinkSync(filePath); // Comprobar si existe el fichero
+        // Devolver respuesta
+        return res.status(400).send({
+            status: "error",
+            message: "La extensión del archivo no es válida"
+        });
+    }
+    // Si es valido, guardar el fichero en el servidor
+    Publication.findOneAndUpdate({ "user": req.user.id, "_id": publicationId }, { file: req.file.filename }, { new: true })
+        .then(publicationUpdated => {
+            if (!publicationUpdated) {
+                return res.status(500).send({
+                    status: "error",
+                    message: "Error al subir el fichero"
+                });
+            }
+            // Devolver respuesta   
+            return res.status(200).send({
+                status: "success",
+                user: publicationUpdated,
+                file: req.file
+            });
+        })
+        .catch(err => {
+            return res.status(500).send({
+                status: "error",
+                message: "Error en la subida de imagen de avatar",
+                err
+            });
+        });
+}
 
 // Devolver archivo multimedia ficheros
 
@@ -182,5 +235,6 @@ module.exports = {
     save,
     detail,
     remove,
-    user
+    user,
+    upload
 }

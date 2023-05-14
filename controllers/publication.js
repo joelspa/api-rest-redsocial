@@ -113,9 +113,64 @@ const remove = (req, res) => {
 }
 
 
-// Listar publicaciones
-
 // Listar publicaciones de un usuario
+const user = (req, res) => {
+    // Sacar el id del usuario
+    let userId = req.params.id;
+
+    // Constrolar el paginado
+    let page = 1;
+
+    if (req.params.page) page = req.params.page;
+
+    const itemsPerPage = 5;
+
+    //Find, populate, ordenar, paginar
+    Publication.find({ user: userId })
+        .sort("-created_at")
+        .populate("user", "name surname image _id")
+        .paginate(page, itemsPerPage)
+        .then((publications) => {
+            // Si no existe devolver error
+            if (!publications) {
+                return res.status(404).send({
+                    status: "error",
+                    message: "No existe la publicación"
+                });
+            }
+            
+            if (publications.length == 0) {
+                return res.status(404).send({
+                    status: "error",
+                    message: "No hay publicaciones"
+                });
+            }
+
+            // Si existe devolver la publicación
+            return res.status(200).send({
+                status: "success",
+                message: "Publicación encontrada",
+                publications,
+                total_items: publications.totalDocs,
+                total_pages: publications.totalPages
+            });
+        })
+        .catch((err) => {
+            // Devolver respuesta negativa
+            return res.status(500).send({
+                status: "error",
+                message: "Error al buscar la publicación",
+                error: err
+            });
+        });
+
+    //    // Devolver resultado (publicaciones, total de publicaciones, total de páginas)
+    //    return res.status(200).send({
+    //        status: "success",
+    //        message: "Listado de publicaciones de un usuario",
+    //        user: req.user
+    //    });
+}
 
 // Subir ficheros
 
@@ -126,5 +181,6 @@ module.exports = {
     pruebaPublication,
     save,
     detail,
-    remove
+    remove,
+    user
 }

@@ -1,5 +1,8 @@
 
-const publication = require("../models/publication");
+// Importar modulos de node
+const fs = require("fs");
+const path = require("path");
+// Importar modelos
 const Publication = require("../models/publication");
 const { param } = require("../routes/publication");
 
@@ -228,6 +231,25 @@ const upload = (req, res) => {
 }
 
 // Devolver archivo multimedia ficheros
+const media = (req, res) => {
+    // Sacar el parametro de la url
+    const file = req.params.file;
+
+    // Montar el path real de la imagen
+    const filePath = "./uploads/publications/" + file;
+
+    // Comprobar si el fichero existe
+    fs.stat(filePath, (err, exists) => {
+        if (!exists) {
+            return res.status(404).send({
+                status: "error",
+                message: "La imagen no existe"
+            });
+        }
+        // Devolver un file
+        return res.sendFile(path.resolve(filePath));
+    });
+}
 
 // Exportar acciones
 module.exports = {
@@ -236,5 +258,6 @@ module.exports = {
     detail,
     remove,
     user,
-    upload
+    upload,
+    media
 }

@@ -2,3 +2,4 @@ arrancar-proyecto.bat
 DB.drawio
 node_modules/*
 uploads/avatars/*
+uploads/publications/*

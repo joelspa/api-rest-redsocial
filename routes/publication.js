@@ -16,13 +16,20 @@ const storage = multer.diskStorage({
 const uploads = multer({ storage }); // middleware de multer
 
 // Definir rutas
+
+// GET
 router.get("/prueba-publication", publicationController.pruebaPublication);
-router.post("/save", check.auth, publicationController.save);
 router.get("/detail/:id", check.auth, publicationController.detail);
-router.delete("/delete/:id", check.auth, publicationController.remove);
 router.get("/user/:id/:page?", check.auth, publicationController.user);
-router.post("/upload/:id", [check.auth, uploads.single("file0")], publicationController.upload);
 router.get("/media/:file", check.auth, publicationController.media);
+router.get("/feed/:page?", check.auth, publicationController.feed);
+
+// POST
+router.post("/save", check.auth, publicationController.save);
+router.post("/upload/:id", [check.auth, uploads.single("file0")], publicationController.upload);
+
+// DELETE
+router.delete("/delete/:id", check.auth, publicationController.remove);
 
 // Exportar router
 module.exports = router;

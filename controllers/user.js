@@ -6,6 +6,9 @@ const path = require("path");
 
 // Importar modelos
 const User = require("../models/user");
+const Follow = require("../models/follow");
+const Publication = require("../models/publication");
+
 
 // Importar el servicios
 const jwt = require("../services/jwt");
@@ -234,7 +237,10 @@ const update = (req, res) => {
         if (userToUpdate.password) {
             let pwd = await bcrypt.hash(userToUpdate.password, 10);
             userToUpdate.password = pwd;
+        } else {
+            delete userToUpdate.password; // Eliminar la propiedad password del objeto userToUpdate para que no se actualice con un valor vacio
         }
+
         // Buscar y actualizar
         try { // Manera de hacerlo con async await
             let userUpdated = await User.findByIdAndUpdate({ _id: userIdentity.id }, userToUpdate, { new: true });
@@ -326,10 +332,33 @@ const avatar = (req, res) => {
         // Devolver un file
         return res.sendFile(path.resolve(filePath));
     });
-
-
 }
 
+
+const counters = async (req, res) => { // Devolver un json con los contadores de seguidores, seguidos y publicaciones
+    // Recoger el id que llega por la url
+    let userId = req.user.id;
+
+    if (req.params.id) {
+        userId = req.params.id;
+    }
+
+    // Ejecutar varios find y actualizar
+    const following = await Follow.countDocuments({ "user": userId })
+
+    const followed = await Follow.countDocuments({ "followed": userId })
+
+    const publications = await Publication.countDocuments({ "user": userId })
+
+    // Devolver resultado
+    return res.status(200).send({
+        status: "success",
+        userId,
+        following: following,
+        followed: followed,
+        publications: publications
+    });
+}
 
 // Exportar acciones
 module.exports = {
@@ -340,5 +369,6 @@ module.exports = {
     list,
     update,
     upload,
-    avatar
+    avatar,
+    counters
 }

@@ -146,6 +146,7 @@ const list = (req, res) => {
     User.countDocuments({})
         .then(count => {
             User.find({})
+                .select({ password: 0, role: 0, email: 0, __v: 0 }) // No mostrar estos campos
                 .sort('_id')
                 .paginate(page, itemsPerPage)
                 .then(async users => {

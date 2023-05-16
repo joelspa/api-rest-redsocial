@@ -123,7 +123,7 @@ const following = (req, res) => {
     Follow.countDocuments({ user: userId })
         .then(count => {
             Follow.find({ user: userId })
-                .populate("user followed", "-password -__v -role") // usar - delante de los campos que no quiero que me devuelva
+                .populate("user followed", "-password -__v -role -email") // usar - delante de los campos que no quiero que me devuelva
                 .paginate(page, itemsPerPage)
                 .then(async follows => {
                     {
@@ -185,7 +185,7 @@ const followers = (req, res) => {
     Follow.countDocuments({ followed: userId })
         .then(count => {
             Follow.find({ user: userId })
-                .populate("user", "-password -__v -role") // usar - delante de los campos que no quiero que me devuelva
+                .populate("user", "-password -__v -role -email") // usar - delante de los campos que no quiero que me devuelva
                 .paginate(page, itemsPerPage)
                 .then(async follows => {
                     {

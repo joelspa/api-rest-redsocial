@@ -21,7 +21,7 @@ const uploads = multer({ storage }); // middleware de multer
 router.get("/prueba-publication", publicationController.pruebaPublication);
 router.get("/detail/:id", check.auth, publicationController.detail);
 router.get("/user/:id/:page?", check.auth, publicationController.user);
-router.get("/media/:file", check.auth, publicationController.media);
+router.get("/media/:file", publicationController.media);
 router.get("/feed/:page?", check.auth, publicationController.feed);
 
 // POST

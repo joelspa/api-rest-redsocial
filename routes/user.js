@@ -17,14 +17,20 @@ const storage = multer.diskStorage({
 const uploads = multer({ storage }); // middleware de multer
 
 // Definir rutas
+// GET
 router.get("/prueba-user", check.auth, userController.pruebaUser);
-router.post("/register", userController.register);
-router.post("/login", userController.login);
 router.get("/profile/:id", check.auth, userController.profile);
 router.get("/list/:page?", check.auth, userController.list);
-router.put("/update", check.auth, userController.update);
+router.get("/avatar/:file", userController.avatar);
+router.get("/counters/:id", check.auth, userController.counters);
+
+// POST
+router.post("/register", userController.register);
+router.post("/login", userController.login);
 router.post("/upload", [check.auth, uploads.single("file0")], userController.upload);
-router.get("/avatar/:file", check.auth, userController.avatar);
+
+// PUT
+router.put("/update", check.auth, userController.update);
 
 // Exportar router
 module.exports = router;

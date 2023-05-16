@@ -1,10 +1,13 @@
-
 // Importar modulos de node
 const fs = require("fs");
 const path = require("path");
+
 // Importar modelos
 const Publication = require("../models/publication");
 const { param } = require("../routes/publication");
+
+//Importar servicios
+const followService = require("../services/followService");
 
 // Acctiones de prueba
 const pruebaPublication = (req, res) => {
@@ -251,6 +254,55 @@ const media = (req, res) => {
     });
 }
 
+// Listar todas las publicaciones (FEED)
+const feed = async (req, res) => {
+    // Sacar la página actual
+    let page = 1;
+
+    if (req.params.page) page = req.params.page;
+
+    // Establecer el número de items
+    const itemsPerPage = 5;
+
+    // Array de ID's de los usuarios que sigo
+    try {
+        const myFollows = await followService.followUserIds(req.user.id);
+
+        // Calcular el número total de publicaciones
+        const totalPublications = await Publication.countDocuments({
+            user: { $in: myFollows.following },
+        });
+
+        // Obtener las publicaciones paginadas
+        const publications = await Publication.find({
+            user: { $in: myFollows.following },
+        })
+            .select("-password -role -__v -email -created_at") // Select para excluir los campos no deseados
+            .sort("-created_at") // Ordenar por fecha de creación
+            .skip((page - 1) * itemsPerPage) // Saltar los registros anteriores
+            .limit(itemsPerPage) // Limitar el número de registros
+            .populate("user", "-password -role -__v -email -created_at"); // Populate para sacar los datos del usuario
+
+        return res.status(200).send({
+            status: "success",
+            message: "Listado de publicaciones de un usuario",
+            following: myFollows.following,
+            total: totalPublications,
+            pages: Math.ceil(totalPublications / itemsPerPage),
+            currentPage: page,
+            publications,
+        });
+    } catch (error) {
+        return res.status(500).send({
+            status: "error",
+            message: "No se ha podido obtener el feed",
+            user: req.user,
+        });
+    }
+};
+
+
+
 // Exportar acciones
 module.exports = {
     pruebaPublication,
@@ -259,5 +311,6 @@ module.exports = {
     remove,
     user,
     upload,
-    media
+    media,
+    feed
 }

@@ -9,10 +9,10 @@ const User = require("../models/user");
 const Follow = require("../models/follow");
 const Publication = require("../models/publication");
 
-
 // Importar el servicios
 const jwt = require("../services/jwt");
 const followService = require("../services/followService");
+const validate = require("../helpers/validate");
 
 // Acctiones de prueba
 const pruebaUser = (req, res) => {
@@ -33,6 +33,17 @@ const register = (req, res) => {
             message: "Faltan datos por enviar"
         })
     }
+
+    // Validacion de datos avanzada
+    try {
+        validate(params);
+    } catch (error) {
+        return res.status(400).json({
+            status: "error",
+            message: "Validacion no superada"
+        })
+    }
+
     //Controlar usuarios duplicados
     User.find({ $or: [{ email: params.email.toLowerCase() }, { nick: params.nick.toLowerCase() }] })
         .then(async users => {
